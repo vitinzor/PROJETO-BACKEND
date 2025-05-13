@@ -1,0 +1,5 @@
+node_modules
+.env
+temp/
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
