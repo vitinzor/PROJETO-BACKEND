@@ -1,3 +1,4 @@
+// services/cloudinaryService.js
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
@@ -6,9 +7,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const uploadImage = async (filePath) => {
+export const uploadImage = async (filePath, folder = 'cinelog') => {
   const result = await cloudinary.uploader.upload(filePath, {
-    folder: 'cinelog',
+    folder: folder,
   });
   return result;
 };

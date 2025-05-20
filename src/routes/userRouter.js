@@ -10,6 +10,7 @@ import getUserReviewsController from '../controllers/user/getUserReviewsControll
 import getUserMoviesController from '../controllers/user/getUserMoviesController.js';
 import generateAvatarController from '../controllers/user/generateAvatarController.js';
 import uploadAvatarController from '../controllers/user/uploadAvatarController.js';
+import refreshTokenController from '../controllers/user/refreshTokenController.js';
 import { 
   listAllUsers, 
   promoteUser, 
@@ -133,6 +134,12 @@ router.delete(
   auth,
   isAdmin,
   asyncHandler(deleteReviewAdmin)
+);
+
+// Adicionar na userRouter.js
+router.post(
+  '/refresh-token',
+  asyncHandler(refreshTokenController)
 );
 
 export default router;

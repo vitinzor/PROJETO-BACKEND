@@ -1,11 +1,14 @@
+// controllers/user/uploadAvatarController.js
 import { PrismaClient } from '@prisma/client';
 import { asyncHandler } from '../../middlewares/asyncHandler.js';
+import { uploadImage } from '../../services/cloudinaryService.js';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const prisma = new PrismaClient();
 
-// Controller para upload de avatar usando express-fileupload
 export default asyncHandler(async (req, res) => {
   try {
     // Verificar se há arquivo enviado
@@ -27,41 +30,50 @@ export default asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'Tamanho máximo permitido é 5MB' });
     }
 
-    // Criar diretório de uploads se não existir
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    // 1. Criar pasta temporária se não existir
+    const tempDir = path.join(__dirname, '../../temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Gerar nome único para o arquivo
-    const userId = req.user.id;
-    const timestamp = Date.now();
-    const fileExt = path.extname(avatarFile.name);
-    const fileName = `user_${userId}_${timestamp}${fileExt}`;
-    const filePath = path.join(uploadDir, fileName);
+    // 2. Salvar arquivo temporariamente
+    const tempPath = path.join(tempDir, avatarFile.name);
+    await avatarFile.mv(tempPath);
 
-    // Mover o arquivo para o diretório de uploads
-    await avatarFile.mv(filePath);
+    try {
+      // 3. Fazer upload para Cloudinary (com pasta específica para avatares)
+      const result = await uploadImage(tempPath, 'cinelog/avatars');
+      
+      // 4. Limpar arquivo temporário
+      fs.unlinkSync(tempPath);
 
-    // Gerar URL do avatar - OBSERVE QUE É UM CAMINHO RELATIVO
-    const avatarUrl = `/uploads/avatars/${fileName}`;
-    
-    console.log('Arquivo salvo em:', filePath);
-    console.log('URL do avatar para o banco de dados:', avatarUrl);
-    
-    // Atualizar usuário no banco de dados
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: { avatarUrl }
-    });
-    
-    // Remover a senha antes de enviar a resposta
-    const { password, ...userWithoutPassword } = updatedUser;
-    
-    res.status(200).json({ 
-      message: 'Avatar atualizado com sucesso',
-      user: userWithoutPassword
-    });
+      // 5. Atualizar usuário no banco de dados com URL do Cloudinary
+      const avatarUrl = result.secure_url;
+      
+      console.log('Avatar enviado para Cloudinary. URL:', avatarUrl);
+      
+      // Atualizar usuário no banco de dados
+      const updatedUser = await prisma.user.update({
+        where: { id: req.user.id },
+        data: { avatarUrl }
+      });
+      
+      // Remover a senha antes de enviar a resposta
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.status(200).json({ 
+        message: 'Avatar atualizado com sucesso',
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      // 6. Garantir limpeza em caso de erro
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      console.error('Erro no upload para Cloudinary:', error);
+      res.status(500).json({ 
+        error: "Falha no upload",
+        details: error.message
+      });
+    }
   } catch (error) {
     console.error('Erro ao atualizar avatar:', error);
     res.status(500).json({ error: 'Erro ao atualizar avatar no banco de dados' });

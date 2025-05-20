@@ -9,7 +9,10 @@ import movieRouter from './routes/movieRouter.js';
 import reviewRouter from './routes/reviewRouter.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import fileUpload from 'express-fileupload';
+import cookieParser from 'cookie-parser'; // Nova importação
 
+console.log('JWT_SECRET está definido?', !!process.env.JWT_SECRET);
+console.log('JWT_REFRESH_SECRET está definido?', !!process.env.JWT_REFRESH_SECRET);
 // Configurar __dirname em módulos ES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,8 +22,12 @@ const app = express();
 app.set('trust proxy', true);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5500', // Domínio do seu frontend
+  credentials: true // Importante para cookies
+}));
 app.use(express.json());
+app.use(cookieParser()); // Inicializa o cookie-parser
 app.use(logger);
 
 // Configurar middleware de upload
@@ -32,8 +39,7 @@ app.use(fileUpload({
   abortOnLimit: true
 }));
 
-// IMPORTANTE: Servir arquivos estáticos - esta linha deve vir ANTES das rotas da API
-app.use(express.static(path.join(__dirname, '../public')));
+
 
 // Adicionar ANTES das rotas da API
 app.use('/uploads/avatars', express.static(path.join(__dirname, '../uploads/avatars')));

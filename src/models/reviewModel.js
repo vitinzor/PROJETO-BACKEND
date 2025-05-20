@@ -37,7 +37,7 @@ export const getReviewsByMovie = async (movieId) => {
           id: true, 
           name: true, 
           email: true,
-          avatar: true  // Adicionar o campo avatar aqui
+          avatarUrl: true  // Adicionar o campo avatar aqui
         } 
       }
     },
@@ -58,7 +58,7 @@ export const updateReview = async (reviewId, data) => {
           id: true, 
           name: true, 
           email: true, 
-          avatar: true  // Adicionar o campo avatar aqui
+          avatarUrl: true  // Adicionar o campo avatar aqui
         } 
       } 
     }
